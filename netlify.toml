@@ -1,0 +1,26 @@
+# netlify.toml
+#
+# Rewrites all /api/* calls to the Netlify Function.
+# The function strips the prefix so Express sees clean routes.
+
+[build]
+  command = "npm install"
+  functions = "netlify/functions"
+
+# Proxy /api/* → the Netlify function (no redirect shown to user)
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
+  force = true
+
+# Let the frontend handle all other routes (SPA fallback — adjust if your
+# frontend is hosted separately)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[functions]
+  node_bundler = "esbuild"
+  included_files = ["src/**"]

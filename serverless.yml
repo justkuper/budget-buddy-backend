@@ -1,0 +1,127 @@
+service: secure-finance-backend
+frameworkVersion: '3'
+useDotenv: true
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: ${env:AWS_REGION, 'us-east-2'}
+  stage: ${opt:stage, 'prod'}
+  memorySize: 512
+  timeout: 29
+
+  environment:
+    NODE_ENV: production
+    COGNITO_USER_POOL_ID: ${env:COGNITO_USER_POOL_ID}
+    COGNITO_CLIENT_ID: ${env:COGNITO_CLIENT_ID}
+    DYNAMODB_USERS_TABLE: finance-${opt:stage, 'prod'}-users
+    DYNAMODB_PLAID_TABLE: finance-${opt:stage, 'prod'}-plaid-items
+    DYNAMODB_BUDGETS_TABLE: finance-${opt:stage, 'prod'}-budgets
+    DYNAMODB_TRANSACTIONS_TABLE: finance-${opt:stage, 'prod'}-transactions
+    KMS_KEY_ID: ${env:KMS_KEY_ID, ''}
+    ENCRYPTION_FALLBACK_KEY: ${env:ENCRYPTION_FALLBACK_KEY}
+    PLAID_CLIENT_ID: ${env:PLAID_CLIENT_ID}
+    PLAID_SECRET: ${env:PLAID_SECRET}
+    PLAID_ENV: ${env:PLAID_ENV, 'sandbox'}
+    ALLOWED_ORIGINS: ${env:ALLOWED_ORIGINS, '*'}
+
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+            - dynamodb:Query
+            - dynamodb:BatchWriteItem
+          Resource:
+            - arn:aws:dynamodb:${env:AWS_REGION, 'us-east-2'}:*:table/finance-${opt:stage, 'prod'}-*
+        - Effect: Allow
+          Action:
+            - kms:Encrypt
+            - kms:Decrypt
+            - kms:GenerateDataKey
+          Resource: '*'
+
+functions:
+  api:
+    handler: lambda/handler.handler
+    events:
+      - httpApi:
+          path: /{proxy+}
+          method: ANY
+      - httpApi:
+          path: /
+          method: ANY
+
+resources:
+  Resources:
+    UsersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: finance-${opt:stage, 'prod'}-users
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: userId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: userId
+            KeyType: HASH
+        SSESpecification:
+          SSEEnabled: true
+
+    PlaidItemsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: finance-${opt:stage, 'prod'}-plaid-items
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: userId
+            AttributeType: S
+          - AttributeName: itemId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: userId
+            KeyType: HASH
+          - AttributeName: itemId
+            KeyType: RANGE
+        SSESpecification:
+          SSEEnabled: true
+
+    BudgetsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: finance-${opt:stage, 'prod'}-budgets
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: userId
+            AttributeType: S
+          - AttributeName: budgetId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: userId
+            KeyType: HASH
+          - AttributeName: budgetId
+            KeyType: RANGE
+        SSESpecification:
+          SSEEnabled: true
+
+    TransactionsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: finance-${opt:stage, 'prod'}-transactions
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: userId
+            AttributeType: S
+          - AttributeName: sortKey
+            AttributeType: S
+        KeySchema:
+          - AttributeName: userId
+            KeyType: HASH
+          - AttributeName: sortKey
+            KeyType: RANGE
+        SSESpecification:
+          SSEEnabled: true

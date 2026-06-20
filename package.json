@@ -1,0 +1,39 @@
+{
+  "name": "secure-finance-backend",
+  "version": "1.0.0",
+  "description": "Secure financial backend: AWS Cognito + TOTP 2FA, DynamoDB, Plaid (sandbox)",
+  "main": "lambda/handler.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "deploy:aws": "serverless deploy --stage prod",
+    "deploy:netlify": "netlify deploy --prod",
+    "tables:create": "node infrastructure/create-tables.js"
+  },
+  "dependencies": {
+    "@aws-sdk/client-cognito-identity-provider": "^3.540.0",
+    "@aws-sdk/client-dynamodb": "^3.540.0",
+    "@aws-sdk/client-kms": "^3.540.0",
+    "@aws-sdk/lib-dynamodb": "^3.540.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "ejs": "^3.1.10",
+    "express": "^4.21.1",
+    "express-rate-limit": "^7.2.0",
+    "express-session": "^1.18.1",
+    "express-validator": "^7.0.1",
+    "helmet": "^7.1.0",
+    "jwks-rsa": "^3.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "openid-client": "^5.7.0",
+    "plaid": "^26.0.0",
+    "serverless-http": "^3.2.0",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
