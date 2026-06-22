@@ -39,6 +39,7 @@ provider:
     PLAID_SECRET: ${env:PLAID_SECRET}
     PLAID_ENV: ${env:PLAID_ENV, 'sandbox'}
     ALLOWED_ORIGINS: ${env:ALLOWED_ORIGINS, '*'}
+    RESEND_API_KEY: ${env:RESEND_API_KEY, ''}
 
   iam:
     role:

@@ -19,6 +19,7 @@ const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const plaidRoutes = require('./routes/plaid');
 const budgetRoutes = require('./routes/budget');
+const twofaRoutes = require('./routes/twofa');
 
 function createApp() {
   const app = express();
@@ -73,6 +74,7 @@ function createApp() {
   app.use('/users', userRoutes);
   app.use('/plaid', plaidRoutes);
   app.use('/budgets', budgetRoutes);
+  app.use('/api', twofaRoutes);
 
   // ─── Health check ──────────────────────────────────────────────────────────
   app.get('/health', (_, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
