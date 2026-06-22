@@ -9,6 +9,21 @@ provider:
   stage: ${opt:stage, 'prod'}
   memorySize: 512
   timeout: 29
+  httpApi:
+    cors:
+      allowedOrigins:
+        - https://main.d3gkddadunznu6.amplifyapp.com
+        - http://localhost:3000
+      allowedHeaders:
+        - Content-Type
+        - Authorization
+      allowedMethods:
+        - GET
+        - POST
+        - PUT
+        - DELETE
+        - OPTIONS
+      allowCredentials: false
 
   environment:
     NODE_ENV: production
