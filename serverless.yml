@@ -9,8 +9,6 @@ provider:
   stage: ${opt:stage, 'prod'}
   memorySize: 512
   timeout: 29
-  httpApi:
-    cors: true
 
   environment:
     NODE_ENV: production

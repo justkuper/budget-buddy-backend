@@ -28,22 +28,14 @@ function createApp() {
   app.use(helmet());
 
   // ─── CORS ──────────────────────────────────────────────────────────────────
-  app.use(
-    cors({
-      origin: (origin, callback) => {
-        // Allow server-to-server calls (no origin) in dev
-        if (!origin) return callback(null, true);
-        const allowed = config.app.allowedOrigins;
-        if (allowed.includes('*') || allowed.includes(origin)) {
-          return callback(null, true);
-        }
-        callback(new Error(`CORS: origin ${origin} not allowed`));
-      },
-      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization'],
-      credentials: true,
-    })
-  );
+  const corsOptions = {
+    origin: true, // reflect the request origin
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+  };
+  app.use(cors(corsOptions));
+  app.options('*', cors(corsOptions)); // handle preflight for all routes
 
   // ─── Body parser ───────────────────────────────────────────────────────────
   app.use(express.json({ limit: '1mb' }));
