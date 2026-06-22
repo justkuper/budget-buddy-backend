@@ -32,6 +32,10 @@ function createApp() {
       origin: (origin, callback) => {
         // Allow server-to-server calls (no origin) in dev
         if (!origin) return callback(null, true);
+        const allowed = config.app.allowedOrigins;
+        if (allowed.includes('*') || allowed.includes(origin)) {
+          return callback(null, true);
+        }
         callback(new Error(`CORS: origin ${origin} not allowed`));
       },
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],

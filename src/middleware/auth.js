@@ -55,13 +55,28 @@ async function requireAuth(req, res, next) {
     return res.status(401).json({ error: 'Missing or malformed Authorization header' });
   }
   const token = authHeader.slice(7);
+
+  // Try custom JWT first (social login users)
+  const secret = process.env.ENCRYPTION_FALLBACK_KEY;
+  if (secret) {
+    try {
+      const decoded = jwt.verify(token, secret);
+      if (decoded.provider) {
+        req.user = { userId: decoded.sub, email: decoded.email, accessToken: token };
+        return next();
+      }
+    } catch (_) {
+      // Not a custom JWT — fall through to Cognito verification
+    }
+  }
+
+  // Cognito JWT verification
   try {
     const decoded = await verifyToken(token);
-    // Cognito access tokens use 'sub' as the user identifier
     req.user = {
       userId: decoded.sub,
       email: decoded.email || decoded.username,
-      accessToken: token, // forwarded to Cognito calls that need it (e.g. MFA setup)
+      accessToken: token,
     };
     next();
   } catch (err) {

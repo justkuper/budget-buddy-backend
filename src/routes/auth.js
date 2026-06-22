@@ -13,10 +13,13 @@
  * POST /auth/logout              – global sign-out (🔒 auth required)
  * POST /auth/forgot-password     – send reset code
  * POST /auth/reset-password      – apply new password with reset code
+ * POST /auth/social              – social login (Google / Facebook)
  */
 
 const { Router } = require('express');
 const { body } = require('express-validator');
+const https = require('https');
+const jwt = require('jsonwebtoken');
 const cognito = require('../services/cognito');
 const db = require('../services/dynamodb');
 const { requireAuth } = require('../middleware/auth');
@@ -216,7 +219,78 @@ router.post(
   }
 );
 
+// ─── Social Login ─────────────────────────────────────────────────────────────
+
+router.post(
+  '/social',
+  [
+    body('provider').isIn(['google', 'facebook']),
+    body('token').notEmpty(),
+  ],
+  validate,
+  async (req, res) => {
+    const { provider, token } = req.body;
+    try {
+      let email, providerId;
+
+      if (provider === 'google') {
+        const info = await _verifyGoogleToken(token);
+        email = info.email;
+        providerId = info.sub;
+      } else {
+        const info = await _verifyFacebookToken(token);
+        email = info.email;
+        providerId = info.id;
+      }
+
+      if (!email) return res.status(400).json({ error: 'Could not retrieve email from provider.' });
+
+      // Find or create user in DynamoDB
+      const userId = `${provider}_${providerId}`;
+      const existing = await db.getUser(userId);
+      if (!existing) await db.createUser(userId, { email, provider });
+
+      // Issue custom JWT (social users bypass Cognito)
+      const secret = process.env.ENCRYPTION_FALLBACK_KEY;
+      const accessToken = jwt.sign({ sub: userId, email, provider }, secret, { expiresIn: '1h' });
+      const refreshToken = jwt.sign({ sub: userId, type: 'refresh' }, secret, { expiresIn: '30d' });
+
+      res.json({ accessToken, idToken: accessToken, refreshToken, expiresIn: 3600, tokenType: 'Bearer' });
+    } catch (err) {
+      res.status(401).json({ error: err.message });
+    }
+  }
+);
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function _verifyGoogleToken(token) {
+  return new Promise((resolve, reject) => {
+    https.get(`https://oauth2.googleapis.com/tokeninfo?id_token=${token}`, (resp) => {
+      let data = '';
+      resp.on('data', chunk => data += chunk);
+      resp.on('end', () => {
+        const info = JSON.parse(data);
+        if (info.error_description || !info.sub) return reject(new Error('Invalid Google token'));
+        resolve(info);
+      });
+    }).on('error', reject);
+  });
+}
+
+function _verifyFacebookToken(token) {
+  return new Promise((resolve, reject) => {
+    https.get(`https://graph.facebook.com/me?fields=id,email&access_token=${token}`, (resp) => {
+      let data = '';
+      resp.on('data', chunk => data += chunk);
+      resp.on('end', () => {
+        const info = JSON.parse(data);
+        if (info.error || !info.id) return reject(new Error('Invalid Facebook token'));
+        resolve(info);
+      });
+    }).on('error', reject);
+  });
+}
 
 function _subFromIdToken(idToken) {
   // Decode (not verify — already verified by Cognito) to extract sub
