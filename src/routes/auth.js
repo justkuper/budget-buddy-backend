@@ -265,17 +265,21 @@ router.post(
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function _verifyGoogleToken(token) {
-  return new Promise((resolve, reject) => {
-    https.get(`https://oauth2.googleapis.com/tokeninfo?id_token=${token}`, (resp) => {
+  const tryParam = (param) => new Promise((resolve, reject) => {
+    https.get(`https://oauth2.googleapis.com/tokeninfo?${param}=${token}`, (resp) => {
       let data = '';
       resp.on('data', chunk => data += chunk);
       resp.on('end', () => {
-        const info = JSON.parse(data);
-        if (info.error_description || !info.sub) return reject(new Error('Invalid Google token'));
-        resolve(info);
+        try {
+          const info = JSON.parse(data);
+          const sub = info.sub || info.user_id;
+          if (info.error_description || !sub) return reject(new Error('Invalid Google token'));
+          resolve({ sub, email: info.email });
+        } catch (e) { reject(e); }
       });
     }).on('error', reject);
   });
+  return tryParam('id_token').catch(() => tryParam('access_token'));
 }
 
 function _verifyFacebookToken(token) {
