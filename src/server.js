@@ -7,6 +7,5 @@ const config = require('./config');
 
 const app = createApp();
 app.listen(config.app.port, () => {
-  console.log(`Server running on http://localhost:${config.app.port}`);
-  console.log(`Environment: ${config.app.nodeEnv}`);
+  process.stdout.write(`Server running on http://localhost:${config.app.port} [${config.app.nodeEnv}]\n`);
 });
